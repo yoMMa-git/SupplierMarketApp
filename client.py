@@ -16,9 +16,10 @@ class MainWindow(QMainWindow):
 
     def registerNickname(self):
         text = self.lineEdit.text()
+        self.pushButton.setEnabled(False)
         print(text)
         global sio
-        sio.connect('http://127.0.0.1:5001')
+        sio.connect('http://125.29.145.179:5001')
         sio.emit('register', {'nickname': text, 'sid': str(sio.sid)})
 
         @sio.on('lobby_update')
