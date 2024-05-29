@@ -16,20 +16,26 @@ def connect_user():
     client_id = request.sid
     clients.append(client_id)
     print("A new user just connected: ", client_id)
-    emit('connected', room=client_id)
+    #emit('connected', room=client_id)
 
 
 @socketio.on('register')
 def register_user(data):
+    print(data)
     client_id = data['sid']
     login = data['nickname']
-    nicknames[client_id] = login
-    print(nicknames)
-    leave_room(client_id)
-    join_room(room=ROOM_NAME)
-    data = [name for name in nicknames.values()]
-    emit('lobby_update', {'data': data}, room=ROOM_NAME)
+    join_room(client_id)
+    if login in nicknames.values():
+        emit('nickname_response', {'response': 'exists'}, room=client_id)
+        leave_room(client_id)
+    else:
+        emit('nickname_response', {'response': 'success'}, room=client_id)
+        nicknames[client_id] = login
+        print(nicknames)
+        join_room(room=ROOM_NAME)
+        data = [name for name in nicknames.values()]
+        emit('lobby_update', {'nicknames': data}, room=ROOM_NAME)
 
 
 if __name__ == '__main__':
-    socketio.run(app, port=5001, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='25.29.145.179', port=5001, allow_unsafe_werkzeug=True)
