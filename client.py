@@ -1,81 +1,68 @@
-import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLineEdit, QPushButton, QVBoxLayout, QWidget, QLabel, \
-    QListWidget, QMessageBox
-from PyQt5.QtCore import QCoreApplication
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
-from asyncqt import QEventLoop
-from PyQt5 import uic
+import tkinter as tk
+from tkinter import ttk, messagebox
+from tkinter.font import Font
+from PIL import Image, ImageTk
 import socketio
-import asyncio
 import threading
 
-# Initialize socketio.Client() globally
 sio = socketio.Client()
+HOST, PORT = '25.29.145.179', 5001
+root = tk.Tk()
+frame = tk.Frame(root)
+frame2 = tk.Frame(root)
+main_font = Font(family='Stem', weight='bold', size=21)
 
 
-def connect():
-    global sio
-    sio.connect('http://25.29.145.179:5001')
+# Function to handle button click
+def on_button_click(entry_field):
+    entered_text = entry_field.get()
+    print(f"You entered: {entered_text}")
+    sio.emit('register', {'nickname': entered_text, 'sid': str(sio.sid)})
 
-
-def createPopup(title, icon, msg):
-    w = QMessageBox()
-    w.setWindowTitle(title)
-    w.setIcon(icon)
-    w.setText(msg)
-    w.show()
-
-
-class MainWindow(QMainWindow):
-    uiUpdated = pyqtSignal(str)
-
-    def __init__(self):
-        super(MainWindow, self).__init__()
-        self.setWindowTitle("NETI BUSINESS")
-        self.ui = uic.loadUi('form.ui', self)
-        self.pushButton.clicked.connect(self.registerNickname)
-
-    def checkNickUI(self, data):
+    @sio.on('nickname_response')
+    def checkNick(data):
         print("Got response!")
         if data['response'] == 'exists':
-            self.pushButton.setEnabled(True)
-            print("This nickname already exists")
+            messagebox.showwarning(message="This nickname already exists!")
         elif data['response'] == 'success':
-            print("Changing UI...")
-            # Ensure proper re-initialization of the UI components
-            self.ui = uic.loadUi('gamewindow.ui', self)
-            self.update()
-
-    def registerNickname(self):
-        text = self.lineEdit.text()
-        self.pushButton.setEnabled(False)
-        print(text)
-        global sio
-        sio.emit('register', {'nickname': text, 'sid': str(sio.sid)})
-
-        @sio.on('nickname_response')
-        def checkNick(data):
-            self.checkNickUI(data)
+            messagebox.showinfo(message="OK! Changing UI...")
+            secondWindow()
 
 
-def handle_nickname_response(main_window, data):
-    print("Handling nickname response:", data)
-    # Update the main window based on the response
-    main_window.checkNickUI(data)
+def secondWindow():
+    frame.destroy()
+    new_label = ttk.Label(root, text='Ожидание игроков...', font=main_font)
+    new_label.pack(pady=10)
 
 
-def main():
-    # Start the connection in a separate thread
-    t1 = threading.Thread(target=connect).start()
-    # Create the QApplication and start the event loop
-    app = QApplication([])
-    window = MainWindow()
-    window.show()
-    # Register the event handler with the MainWindow instance
-    sio.on('nickname_response', lambda data: handle_nickname_response(window, data))
-    # Wait for the application to exit
-    sys.exit(app.exec())
+def mainWindow():
+    # Create the main application window
+    sio.connect('http://25.29.145.179:5001')
+
+    root.title("Бизнес-игра")
+    root.geometry("400x500")
+
+    entry_label = ttk.Label(frame, text='Добро пожаловать!\nВведите логин:', font=main_font)
+    entry_label.pack(pady=10)
+
+    # Create an entry field (LineEdit)
+    entry_field = ttk.Entry(frame, width=40)
+    entry_field.pack(pady=10)
+
+    # Create a button
+    button = ttk.Button(frame, text="Войти", command=lambda entry=entry_field: on_button_click(entry))
+    button.pack(pady=10)
+
+    # Simulate an icon field using a label with an image
+    image = ImageTk.PhotoImage(Image.open('icon.png').resize((145, 247)))  # Load the image
+    icon_label = ttk.Label(root, image=image)
+    icon_label.pack(pady=10)
+
+    frame.pack()
+
+    # Start the Tkinter event loop
+    root.mainloop()
 
 
 if __name__ == '__main__':
-    main()
+    threading.Thread(target=mainWindow()).start()
