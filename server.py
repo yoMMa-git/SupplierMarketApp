@@ -67,8 +67,14 @@ def register_user(data):
         print("Current rooms user in:", rooms(client_id))
         if 2 == len(nicknames.values()):  # TODO: сделать старт игры по команде от админа
             game_start = True
-            time.sleep(1)
-            emit('start_game', room=ROOM_NAME)
+            #time.sleep(1)
+            #emit('start_game', room=ROOM_NAME)
+
+
+@socketio.on('admin_game_start')
+def start_game():
+    time.sleep(1)
+    emit('start_game', room=ROOM_NAME)
 
 
 @socketio.on('game_theme')  # событие получения выбранной темы от админа

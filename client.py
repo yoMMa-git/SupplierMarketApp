@@ -1,9 +1,11 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, IntVar
 from tkinter.font import Font
 from PIL import Image, ImageTk
 import socketio
 import threading
+
+from interface import draw_game_ui
 
 sio = socketio.Client()
 HOST, PORT = '25.29.145.179', 5001
@@ -11,9 +13,26 @@ root = tk.Tk()
 frame = tk.Frame(root)
 frame2 = tk.Frame(root)
 frame3 = tk.Frame(root)
+
 main_font = Font(family='Stem', weight='bold', size=21)
 list_font = Font(family='Stem', size=12)
+
+fonts = {'main_font': main_font, 'list_font': list_font}
+
 icon = ImageTk.PhotoImage(Image.open('misc/icon.png').resize((145, 247)))  # Загрузка картинки
+
+
+def update_value(widget, array, index, change):
+    if not (array[index] + change < 5 or array[index] + change > 30):
+        array[index] += change
+        widget.config(text=str(array[index]))
+
+
+def send_values(values, button):
+    button.config(state=tk.DISABLED)
+    for i in range(len(values)):
+        print(values[i], end='\t')
+    print()
 
 
 def on_button_click(entry_field):  # отправка никнейма
@@ -59,14 +78,22 @@ def on_button_click(entry_field):  # отправка никнейма
                 root.geometry('1080x720')
 
                 wait_label = ttk.Label(frame3, text='Ожидайте подготовки темы и критериев...', font=main_font)
-                wait_label.pack(anchor=tk.CENTER)
+                wait_label.grid(row=0, columnspan=5)
 
                 frame3.pack(anchor=tk.CENTER)
 
-                @sio.on('game_info')  # получение тематики игры
+                @sio.on('game_info')  # получение тематики игры и её старт
                 def draw_scales(data):
                     theme = data['theme']
                     wait_label.config(text=f"Тема текущей игры: {str(theme).lower()}", font=main_font)
+
+                    values = [5, 5, 5, 5, 5]
+                    balance = [100]
+
+                    draw_game_ui(frame3, values, balance, fonts)
+                    button_accept = ttk.Button(frame3, text='Отправить распределение',
+                                               command=lambda: send_values(values, button_accept))
+                    button_accept.grid(column=2, row=12, sticky=tk.NSEW)
 
                     # frame3.pack_forget() TODO: отрисовка ползунков для первого раунда
 

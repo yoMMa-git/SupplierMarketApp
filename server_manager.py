@@ -3,15 +3,17 @@ from tkinter.ttk import Label, Button, Combobox
 from tkinter.font import Font
 import socketio
 import threading
+import time
 
 
 def send_theme():  # отправка тематики партии и блокировка кнопки
+    time.sleep(1)
     sio.emit('game_theme', data={'theme': combox.get()})
     second_button.config(state=tk.DISABLED)
 
 
 def start_game():
-    pass  # TODO: сделать старт игры
+    sio.emit('admin_game_start')
 
 
 size = 0
