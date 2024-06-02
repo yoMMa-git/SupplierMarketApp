@@ -1,6 +1,7 @@
 from flask import Flask, request, session
 from flask_socketio import SocketIO, join_room, leave_room, emit, rooms
 import time
+import random
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -12,6 +13,11 @@ ADMIN_ID = None  # ID админа
 
 ROOM_NAME = 'MainLobby'  # название главного лобби
 game_start = False  # трекер старта игры
+
+
+def random_user(players):
+    index = random.randint(0, len(players.values())-1)
+    return list(players.keys())[index]
 
 
 @socketio.on('connect')
@@ -74,7 +80,13 @@ def register_user(data):
 @socketio.on('admin_game_start')
 def start_game():
     time.sleep(1)
-    emit('start_game', room=ROOM_NAME)
+    judge = random_user(nicknames)
+    for elem in nicknames.keys():
+        if elem != judge:
+            emit('start_game', {'role': 'player'}, to=elem)
+        elif elem == judge:
+            emit('start_game', {'role': 'judge'}, to=elem)
+    #emit('start_game', room=ROOM_NAME)
 
 
 @socketio.on('game_theme')  # событие получения выбранной темы от админа

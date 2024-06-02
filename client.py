@@ -1,11 +1,11 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, IntVar
+from tkinter import ttk, messagebox, StringVar
 from tkinter.font import Font
 from PIL import Image, ImageTk
 import socketio
 import threading
 
-from interface import draw_game_ui
+from interface import draw_game_ui, draw_judge_ui
 
 sio = socketio.Client()
 HOST, PORT = '25.29.145.179', 5001
@@ -33,6 +33,22 @@ def send_values(values, button):
     for i in range(len(values)):
         print(values[i], end='\t')
     print()
+
+
+def send_rates(rates, button_rates):
+    button_rates.config(state=tk.DISABLED)  # блокируем кнопку
+    numbers = []  # массив, в котором будем хранить ЧИСЛЕННЫЕ значения
+    success = True  # флаг успешности конвертации
+    for elem in rates:
+        if not elem.get().isdigit():  # если введено число
+            success = False
+        else:
+            numbers.append(int(elem.get()))
+    if success:  # если все значения - числа
+        rates = numbers.copy()
+    else:
+        button_rates.config(state=tk.NORMAL)
+    return success
 
 
 def on_button_click(entry_field):  # отправка никнейма
@@ -72,30 +88,51 @@ def on_button_click(entry_field):  # отправка никнейма
                     listbox.insert(0, name)
 
             @sio.on('start_game')  # получение сигнала о старте игры
-            def start_game():
-                print('Game should be started!')
+            def start_game(data):
+                role = data['role']
                 frame2.pack_forget()
                 root.geometry('1080x720')
+                if role == 'player':
 
-                wait_label = ttk.Label(frame3, text='Ожидайте подготовки темы и критериев...', font=main_font)
-                wait_label.grid(row=0, columnspan=5)
+                    wait_label = ttk.Label(frame3, text='Ожидайте выбора тематики игры! (роль: ПОСТАВЩИК)',
+                                           font=main_font)
+                    wait_label.grid(row=0, columnspan=5)
 
-                frame3.pack(anchor=tk.CENTER)
+                    frame3.pack(anchor=tk.CENTER)
 
-                @sio.on('game_info')  # получение тематики игры и её старт
-                def draw_scales(data):
-                    theme = data['theme']
-                    wait_label.config(text=f"Тема текущей игры: {str(theme).lower()}", font=main_font)
+                    @sio.on('game_info')  # получение тематики игры и её старт
+                    def draw_scales(data):
+                        theme = data['theme']
+                        wait_label.config(text=f"Тема текущей игры: {str(theme).lower()} (ПОСТАВЩИК)", font=main_font)
 
-                    values = [5, 5, 5, 5, 5]
-                    balance = [100]
+                        values = [5, 5, 5, 5, 5]
+                        balance = [100 - sum(values)]
 
-                    draw_game_ui(frame3, values, balance, fonts)
-                    button_accept = ttk.Button(frame3, text='Отправить распределение',
-                                               command=lambda: send_values(values, button_accept))
-                    button_accept.grid(column=2, row=12, sticky=tk.NSEW)
+                        draw_game_ui(frame3, values, balance, fonts)
+                        button_accept = ttk.Button(frame3, text='Отправить распределение',
+                                                   command=lambda: send_values(values, button_accept))
+                        button_accept.grid(column=2, row=12, sticky=tk.NSEW)
+                elif role == 'judge':
 
-                    # frame3.pack_forget() TODO: отрисовка ползунков для первого раунда
+                    wait_label = ttk.Label(frame3, text='Ожидайте выбора тематики игры! (роль: ЭКСПЕРТ)',
+                                           font=main_font)
+                    wait_label.grid(row=0, columnspan=5)
+
+                    frame3.pack(anchor=tk.CENTER)
+
+                    @sio.on('game_info')
+                    def draw_scales(data):
+                        theme = data['theme']
+                        wait_label.config(text=f"Тема текущей игры: {str(theme).lower()} (ЭКСПЕРТ)", font=main_font)
+
+                        rates = [StringVar(), StringVar(), StringVar(), StringVar(), StringVar(), StringVar(),
+                                 StringVar(), StringVar(), StringVar(), StringVar()]
+
+                        draw_judge_ui(frame3, rates, fonts)
+
+                        button_rates = ttk.Button(frame3, text='Отправить оценку',
+                                                  command=lambda: send_rates(rates, button_rates))
+                        button_rates.grid(row=12, columnspan=5)
 
 
 def mainWindow():  # главное меню

@@ -13,6 +13,7 @@ def send_theme():  # отправка тематики партии и блок�
 
 
 def start_game():
+    first_button.config(state=tk.DISABLED)
     sio.emit('admin_game_start')
 
 
@@ -35,6 +36,7 @@ def update_data(data):  # перерисовка счётчика игроков
     size = len(data['nicknames'])
     if size >= ALLOWED_PLAYERS:
         second_button.config(state=tk.NORMAL)
+        pass
     players_count.config(text=f"Количество игроков: {size}")
 
 
