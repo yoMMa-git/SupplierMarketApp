@@ -54,9 +54,8 @@ class MainWindow(QMainWindow):
         global sio
         sio.emit('register', {'nickname': text, 'sid': str(sio.sid)})
 
-
         #def checkNick(data):
-            #self.checkNickUI(data)
+        #self.checkNickUI(data)
 
 
 def handle_nickname_response(main_window, data):

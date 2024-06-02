@@ -1,1 +1,1 @@
-from game_math.mathematics import saati_matrix
+from game_math.mathematics import calculate_everything

@@ -6,7 +6,6 @@ import socketio
 import threading
 
 from interface import draw_game_ui, draw_judge_ui
-from game_math import saati_matrix
 
 sio = socketio.Client()
 HOST, PORT = '25.29.145.179', 5001
@@ -29,14 +28,13 @@ def update_value(widget, array, index, change):
         widget.config(text=str(array[index]))
 
 
-def send_values(values, button):
+def send_values(values, button):  # разница функций возникает из-за разницы интерфейсов игрока и экспертизы
     button.config(state=tk.DISABLED)
-    for i in range(len(values)):
-        print(values[i], end='\t')
-    print()
+    sio.emit('send_values', {'values': values})
 
 
 def send_rates(rates, button_rates):
+    print("Button has been pressed!")
     button_rates.config(state=tk.DISABLED)  # блокируем кнопку
     numbers = []  # массив, в котором будем хранить ЧИСЛЕННЫЕ значения
     success = True  # флаг успешности конвертации
@@ -47,7 +45,7 @@ def send_rates(rates, button_rates):
             numbers.append(int(elem.get()))
     if success:  # если все значения - числа
         rates = numbers.copy()
-        print(saati_matrix(rates))
+        sio.emit('send_rates', {'rates': rates})
     else:
         button_rates.config(state=tk.NORMAL)
     return success
@@ -114,6 +112,11 @@ def on_button_click(entry_field):  # отправка никнейма
                         button_accept = ttk.Button(frame3, text='Отправить распределение',
                                                    command=lambda: send_values(values, button_accept))
                         button_accept.grid(column=2, row=12, sticky=tk.NSEW)
+
+                    @sio.on('wait_for_rates')
+                    def lock_everything():
+                        wait_label.config(text="Ожидайте предвраительного подсчёта...")
+
                 elif role == 'judge':
 
                     wait_label = ttk.Label(frame3, text='Ожидайте выбора тематики игры! (роль: ЭКСПЕРТ)',

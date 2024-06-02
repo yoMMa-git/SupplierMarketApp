@@ -8,11 +8,37 @@ def percentage_array(array):
     return array
 
 
-def print_matrix(matrix, size):
+def print_matrix(matrix, size):  # работает только для квадратных матриц!
     for i in range(size):
         for j in range(size):
             print(round(matrix[i][j], 2), end=' ')
         print()
+
+
+def matrix_for_criteria(array):  # [30, 25, 15, 40, 20]
+    size = len(array)
+    CMatrix = numpy.ones(size)
+    for i in range(size):  # заполнение матрицы
+        for j in range(i + 1, size):
+            value1, value2 = array[i], array[j]
+            if value1 / value2 > 1:
+                coef = round(value1 / value2, 0)
+                CMatrix[i][j], CMatrix[i][j] = coef, 1 / coef
+            elif value1 / value2 < 1:
+                coef = round(value2 / value1, 0)
+                CMatrix[i][j], CMatrix[i][j] = 1 / coef, coef
+            else:
+                CMatrix[i][j], CMatrix[i][j] = 1, 1
+
+    columnn_sums = CMatrix.sum(axis=0)  # массив сумм столбцов
+
+    for i in range(5):
+        for j in range(5):
+            CMatrix[j][i] /= columnn_sums[i]  # нормируем столбцы
+
+    matrix_means = CMatrix.mean(1)  # находим среднее значение матрицы (1 - для каждой строчки, 0 - для каждого столбца)
+
+    return matrix_means
 
 
 def saati_matrix(rates):
@@ -40,6 +66,24 @@ def saati_matrix(rates):
 
     matrix_means = matrix.mean(1)  # находим среднее значение матрицы (1 - для каждой строчки, 0 - для каждого столбца)
 
-    #print(percentage_array(matrix_means))
+    return matrix_means  # возвращаем массив весов критериев в процентах
 
-    return percentage_array(matrix_means)  # возвращаем массив весов критериев в процентах
+
+def calculate_everything(players_values, rates):
+    print(players_values)
+    values = players_values.values()
+    sids = players_values.keys()
+
+    cofs = numpy.matrix(saati_matrix(rates)).transpose()
+
+    criteria_1 = matrix_for_criteria([x[0] for x in values])
+    criteria_2 = matrix_for_criteria([x[1] for x in values])
+    criteria_3 = matrix_for_criteria([x[2] for x in values])
+    criteria_4 = matrix_for_criteria([x[3] for x in values])
+    criteria_5 = matrix_for_criteria([x[4] for x in values])
+
+    criteries = numpy.matrix([criteria_1, criteria_2, criteria_3, criteria_4, criteria_5]).transpose()
+
+    final = criteries.dot(cofs)
+
+    return final

@@ -3,6 +3,8 @@ from flask_socketio import SocketIO, join_room, leave_room, emit, rooms
 import time
 import random
 
+from game_math import calculate_everything
+
 app = Flask(__name__)
 socketio = SocketIO(app)
 
@@ -14,9 +16,12 @@ ADMIN_ID = None  # ID админа
 ROOM_NAME = 'MainLobby'  # название главного лобби
 game_start = False  # трекер старта игры
 
+player_values = {}  # словарь ID-оценки
+judge_rates = []
+
 
 def random_user(players):
-    index = random.randint(0, len(players.values())-1)
+    index = random.randint(0, len(players.values()) - 1)
     return list(players.keys())[index]
 
 
@@ -81,11 +86,15 @@ def register_user(data):
 def start_game():
     time.sleep(1)
     judge = random_user(nicknames)
-    for elem in nicknames.keys():
-        if elem != judge:
-            emit('start_game', {'role': 'player'}, to=elem)
-        elif elem == judge:
-            emit('start_game', {'role': 'judge'}, to=elem)
+    leave_room(room=ROOM_NAME, sid=judge)
+    emit('start_game', {'role': 'player'}, room=ROOM_NAME)
+    emit('start_game', {'role': 'judge'}, to=judge)
+    # for elem in nicknames.keys():
+    #     if elem != judge:
+    #         emit('start_game', {'role': 'player'}, to=elem)
+    #     elif elem == judge:
+    #         leave_room(room=ROOM_NAME, sid=elem)
+    #         emit('start_game', {'role': 'judge'}, to=elem)
     #emit('start_game', room=ROOM_NAME)
 
 
@@ -94,7 +103,28 @@ def start_game(data):
     global game_start
     if game_start:  # если игра началась TODO: обработка преждевременной отправки темы
         theme = data['theme']
-        emit('game_info', {'theme': theme}, room=ROOM_NAME)
+        emit('game_info', {'theme': theme}, to=list(nicknames.keys()))
+
+
+@socketio.on('send_values')
+def add_values(data):
+    global judge_rates, player_values
+    print("Got values!")
+    values = data['values']
+    player_values[request.sid] = values
+    if len(player_values.keys()) == len(nicknames.keys()) - 1:  # -1, потому что есть эксперты
+        emit('wait_for_rates', room=ROOM_NAME)
+        if len(judge_rates) > 0:
+            print(calculate_everything(player_values, judge_rates))
+
+
+@socketio.on('send_rates')
+def add_rates(data):
+    print("Got rates!")
+    global judge_rates, player_values
+    judge_rates = data['rates']
+    if len(player_values.keys()) == len(nicknames.keys()) - 1:
+        print(calculate_everything(player_values, judge_rates))
 
 
 if __name__ == '__main__':
