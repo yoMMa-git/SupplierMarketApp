@@ -71,7 +71,7 @@ def register_user(data):
         except:
             pass
         print("Current rooms user in:", rooms(client_id))
-        if 2 == len(nicknames.values()):  # TODO: сделать старт игры по команде от админа
+        if 2 == len(nicknames.values()):
             game_start = True
             #time.sleep(1)
             #emit('start_game', room=ROOM_NAME)

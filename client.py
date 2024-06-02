@@ -6,6 +6,7 @@ import socketio
 import threading
 
 from interface import draw_game_ui, draw_judge_ui
+from game_math import saati_matrix
 
 sio = socketio.Client()
 HOST, PORT = '25.29.145.179', 5001
@@ -46,6 +47,7 @@ def send_rates(rates, button_rates):
             numbers.append(int(elem.get()))
     if success:  # если все значения - числа
         rates = numbers.copy()
+        print(saati_matrix(rates))
     else:
         button_rates.config(state=tk.NORMAL)
     return success
