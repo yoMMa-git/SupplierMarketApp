@@ -17,24 +17,40 @@ def print_matrix(matrix, size):  # работает только для квад
 
 def matrix_for_criteria(array):  # [30, 25, 15, 40, 20]
     size = len(array)
-    CMatrix = numpy.ones(size)
+    CMatrix = numpy.ones((size, size))
     for i in range(size):  # заполнение матрицы
         for j in range(i + 1, size):
             value1, value2 = array[i], array[j]
-            if value1 / value2 > 1:
-                coef = round(value1 / value2, 0)
-                CMatrix[i][j], CMatrix[i][j] = coef, 1 / coef
-            elif value1 / value2 < 1:
-                coef = round(value2 / value1, 0)
-                CMatrix[i][j], CMatrix[i][j] = 1 / coef, coef
+            diff_value = value1 - value2
+            if diff_value > 0:
+                coef = (diff_value // 5) + 1
+                if coef > 9:
+                    coef = 9
+                CMatrix[i][j] = coef
+                CMatrix[j][i] = 1 / coef
+            elif diff_value < 0:
+                coef = (abs(diff_value) // 5) + 1
+                if coef > 9:
+                    coef = 9
+                CMatrix[j][i] = coef
+                CMatrix[i][j] = 1 / coef
             else:
-                CMatrix[i][j], CMatrix[i][j] = 1, 1
+                CMatrix[i][j], CMatrix[j][i] = 1, 1
+            # if value1 / value2 > 1:
+            #     coef = round(value1 / value2, 0)
+            #     CMatrix[i][j] = coef
+            #     CMatrix[j][i] = 1 / coef
+            # elif value1 / value2 < 1:
+            #     coef = round(value2 / value1, 0)
+            #     CMatrix[i][j], CMatrix[j][i] = 1 / coef, coef
+            # else:
+            #     CMatrix[i][j], CMatrix[j][i] = 1, 1
 
-    columnn_sums = CMatrix.sum(axis=0)  # массив сумм столбцов
+    column_sums = CMatrix.sum(axis=0)  # массив сумм столбцов
 
-    for i in range(5):
-        for j in range(5):
-            CMatrix[j][i] /= columnn_sums[i]  # нормируем столбцы
+    for i in range(len(column_sums)):
+        for j in range(len(column_sums)):
+            CMatrix[j][i] /= column_sums[i]  # нормируем столбцы
 
     matrix_means = CMatrix.mean(1)  # находим среднее значение матрицы (1 - для каждой строчки, 0 - для каждого столбца)
 
@@ -70,9 +86,12 @@ def saati_matrix(rates):
 
 
 def calculate_everything(players_values, rates):
-    print(players_values)
     values = players_values.values()
     sids = players_values.keys()
+
+    print("CALCAULATION VALUES:")
+    print(values)
+    print(rates)
 
     cofs = numpy.matrix(saati_matrix(rates)).transpose()
 
@@ -84,6 +103,32 @@ def calculate_everything(players_values, rates):
 
     criteries = numpy.matrix([criteria_1, criteria_2, criteria_3, criteria_4, criteria_5]).transpose()
 
-    final = criteries.dot(cofs)
+    final = numpy.squeeze(numpy.asarray(criteries.dot(cofs)), axis=0)
 
-    return final
+    new_final = dict.fromkeys(sids)
+    counter = 0
+
+    for player in sids:
+        new_final[player] = round(float(final[counter] * 100), 2)
+        counter += 1
+
+    return new_final
+
+
+def get_cofs(rates):
+    return numpy.squeeze(numpy.asarray(numpy.matrix(saati_matrix(rates)).transpose()), axis=1)
+
+
+#results = calculate_everything(
+#    players_values={'jwTD6iqlsAwW1MTEAAAH': [25, 20, 25, 20, 10]},
+#    rates=[2, 5, 7, 3, 7, 8, 9, 2, 3, 1])
+
+#print(get_cofs(rates=[2, 5, 7, 3, 7, 8, 9, 2, 3, 1]))
+
+# value = 2.5423987598237423
+#
+# matrix = numpy.ones((5, 5))
+# for i in range(5):
+#     for j in range(5):
+#         matrix[i][j] = round(value, 2)
+# print(matrix)

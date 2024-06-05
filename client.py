@@ -5,7 +5,7 @@ from PIL import Image, ImageTk
 import socketio
 import threading
 
-from interface import draw_game_ui, draw_judge_ui
+from interface import draw_game_ui, draw_judge_ui, draw_results_ui
 
 sio = socketio.Client()
 HOST, PORT = '25.29.145.179', 5001
@@ -13,6 +13,8 @@ root = tk.Tk()
 frame = tk.Frame(root)
 frame2 = tk.Frame(root)
 frame3 = tk.Frame(root)
+frame4 = tk.Frame(root)
+final_frame = tk.Frame(root)
 
 main_font = Font(family='Stem', weight='bold', size=21)
 list_font = Font(family='Stem', size=12)
@@ -20,6 +22,20 @@ list_font = Font(family='Stem', size=12)
 fonts = {'main_font': main_font, 'list_font': list_font}
 
 icon = ImageTk.PhotoImage(Image.open('misc/icon.png').resize((145, 247)))  # Загрузка картинки
+
+current_round = 1
+counter = 0
+
+
+def get_rate(value, buttons, frame):
+    global counter
+    if counter != 2:
+        counter += 1
+        buttons[value].config(state=tk.DISABLED)
+        sio.emit('get_rate', {'number': value})
+        if counter == 2:
+            for button in buttons:
+                button.config(state=tk.DISABLED)
 
 
 def update_value(widget, array, index, change):
@@ -33,13 +49,27 @@ def send_values(values, button):  # разница функций возника
     sio.emit('send_values', {'values': values})
 
 
+def next_round():
+    sio.emit('next_round')
+
+
+def forget_every_frame():
+    try:
+        frame.pack_forget()
+        frame2.pack_forget()
+        frame3.pack_forget()
+        frame4.pack_forget()
+    except Exception as e:
+        print(e)
+
+
 def send_rates(rates, button_rates):
     print("Button has been pressed!")
     button_rates.config(state=tk.DISABLED)  # блокируем кнопку
     numbers = []  # массив, в котором будем хранить ЧИСЛЕННЫЕ значения
     success = True  # флаг успешности конвертации
     for elem in rates:
-        if not elem.get().isdigit():  # если введено число
+        if not elem.get().lstrip('-').isdigit():  # если введено число
             success = False
         else:
             numbers.append(int(elem.get()))
@@ -58,7 +88,7 @@ def on_button_click(entry_field):  # отправка никнейма
 
     @sio.on('nickname_response')  # ожидание ответа по доступности никнейма
     def checkNick(data):
-        print("Got response!")
+        #print("Got response!")
         if data['response'] == 'exists':
             messagebox.showwarning(message="This nickname already exists!")
         elif data['response'] == 'success':
@@ -102,11 +132,31 @@ def on_button_click(entry_field):  # отправка никнейма
 
                     @sio.on('game_info')  # получение тематики игры и её старт
                     def draw_scales(data):
-                        theme = data['theme']
-                        wait_label.config(text=f"Тема текущей игры: {str(theme).lower()} (ПОСТАВЩИК)", font=main_font)
 
-                        values = [5, 5, 5, 5, 5]
-                        balance = [100 - sum(values)]
+                        try:
+                            frame4.pack_forget()
+                            frame3.pack(anchor=tk.CENTER)
+                        except Exception as e:
+                            print(e)
+
+                        print("Got response GAME_INFO!")
+
+                        global current_round
+                        theme = data['theme']
+
+                        try:
+                            current_round = data['round']
+                        except KeyError:
+                            current_round = 1
+                        wait_label.config(
+                            text=f"Тема текущей игры: {str(theme).lower()} (ПОСТАВЩИК), раунд {current_round}",
+                            font=main_font)
+
+                        try:
+                            values = data['values']
+                        except KeyError:
+                            values = [5, 5, 5, 5, 5]
+                        balance = [100 + (50 * (current_round - 1)) - sum(values)]
 
                         draw_game_ui(frame3, values, balance, fonts)
 
@@ -114,11 +164,75 @@ def on_button_click(entry_field):  # отправка никнейма
                                                    command=lambda: send_values(values, button_accept))
                         button_accept.grid(column=2, row=12, sticky=tk.NSEW)
 
+                        if current_round != 1:
+                            button_first = ttk.Button(frame3, text='Объем поставки',
+                                                      command=lambda: get_rate(0, buttons, frame3), width=20)
+                            button_second = ttk.Button(frame3, text='Срок поставки',
+                                                       command=lambda: get_rate(1, buttons, frame3), width=20)
+                            button_third = ttk.Button(frame3, text='Цена за штуку',
+                                                      command=lambda: get_rate(2, buttons, frame3), width=20)
+                            button_fourth = ttk.Button(frame3, text='Отклонения от графика платежей',
+                                                       command=lambda: get_rate(3, buttons, frame3), width=20)
+                            button_fifth = ttk.Button(frame3, text='Виды упаковки',
+                                                      command=lambda: get_rate(4, buttons, frame3), width=20)
+                            buttons = [button_first, button_second, button_third, button_fourth, button_fifth]
+                            frame3.rowconfigure(index=13, weight=1)
+                            button_first.grid(column=0, row=14, sticky=tk.NSEW)
+                            button_second.grid(column=1, row=14, sticky=tk.NSEW)
+                            button_third.grid(column=2, row=14, sticky=tk.NSEW)
+                            button_fourth.grid(column=3, row=14, sticky=tk.NSEW)
+                            button_fifth.grid(column=4, row=14, sticky=tk.NSEW)
+
+                            @sio.on('set_rate')
+                            def set_rate(data):
+                                try:
+                                    number = data['number']
+                                    value = data['value']
+                                    value_label = ttk.Label(frame3, text=str(round(value*100, 2))+"%", font=list_font)
+                                    value_label.grid(column=number, row=14, sticky=tk.NSEW)
+                                except KeyError:
+                                    pass
+
                     @sio.on('wait_for_rates')
                     def lock_everything():
                         wait_label.config(text="Ожидайте предвраительного подсчёта...")
 
+                    @sio.on('game_results')
+                    def print_data(data):
+                        print('Got response about results!')
+
+                        frame3.pack_forget()
+
+                        frame4.pack(anchor=tk.CENTER)
+
+                        draw_results_ui(data, frame4, fonts)
+
+                    @sio.on('finish')
+                    def finish_game(data):
+                        forget_every_frame()
+                        root.geometry("400x500")
+
+                        bye_message = ttk.Label(final_frame, text='Спасибо за участие!', font=main_font)
+                        bye_message.pack(pady=10)
+
+                        text = ""
+                        try:
+                            stats = data['data']
+                            for player in stats:
+                                text += f"{data['nicknames'][player]}: {stats[player]}%\n"
+                            final_list = ttk.Label(final_frame, text=text, font=list_font)
+                            final_list.pack(pady=10)
+                        except KeyError:
+                            pass
+
+                        icon_bye = ttk.Label(final_frame, image=icon)
+                        icon_bye.pack(pady=10)
+
+                        final_frame.pack()
+
                 elif role == 'judge':
+
+                    print("Got response GAME_INFO!")
 
                     wait_label = ttk.Label(frame3, text='Ожидайте выбора тематики игры! (роль: ЭКСПЕРТ)',
                                            font=main_font)
@@ -128,17 +242,67 @@ def on_button_click(entry_field):  # отправка никнейма
 
                     @sio.on('game_info')
                     def draw_scales(data):
+
+                        try:
+                            frame4.pack_forget()
+                            frame3.pack(anchor=tk.CENTER)
+                        except Exception as e:
+                            print(e)
+
                         theme = data['theme']
                         wait_label.config(text=f"Тема текущей игры: {str(theme).lower()} (ЭКСПЕРТ)", font=main_font)
 
-                        rates = [StringVar(), StringVar(), StringVar(), StringVar(), StringVar(), StringVar(),
-                                 StringVar(), StringVar(), StringVar(), StringVar()]
+                        try:
+                            rates = data['rates']
+                        except KeyError:
+                            rates = [StringVar(), StringVar(), StringVar(), StringVar(), StringVar(), StringVar(),
+                                     StringVar(), StringVar(), StringVar(), StringVar()]
+                            draw_judge_ui(frame3, rates, fonts, False)
 
-                        draw_judge_ui(frame3, rates, fonts)
+                            button_rates = ttk.Button(frame3, text='Отправить оценку',
+                                                      command=lambda: send_rates(rates, button_rates))
+                            button_rates.grid(row=12, columnspan=5)
+                        else:
+                            text_rates = []
+                            for elem in rates:
+                                text_rates.append(StringVar(value=str(elem)))
+                            draw_judge_ui(frame3, text_rates, fonts, True)
 
-                        button_rates = ttk.Button(frame3, text='Отправить оценку',
-                                                  command=lambda: send_rates(rates, button_rates))
-                        button_rates.grid(row=12, columnspan=5)
+                            button_rates = ttk.Button(frame3, text='Отправить оценку', state=tk.DISABLED)
+                            button_rates.grid(row=12, columnspan=5)
+
+                    @sio.on('game_results')
+                    def print_data(data):
+                        frame3.pack_forget()
+                        frame4.pack(anchor=tk.CENTER)
+
+                        draw_results_ui(data, frame4, fonts)
+
+                        next_button = ttk.Button(frame4, text='Следующий раунд', command=next_round)
+                        next_button.grid(row=35, columnspan=5)
+
+                    @sio.on('finish')
+                    def finish_game(data):
+                        forget_every_frame()
+                        root.geometry("400x500")
+
+                        bye_message = ttk.Label(final_frame, text='Спасибо за участие!', font=main_font)
+                        bye_message.pack(pady=10)
+
+                        text = ""
+                        try:
+                            stats = data['data']
+                            for player in stats:
+                                text += f"{data['nicknames'][player]}: {stats[player]}%\n"
+                            final_list = ttk.Label(final_frame, text=text, font=list_font)
+                            final_list.pack(pady=10)
+                        except KeyError:
+                            pass
+
+                        icon_bye = ttk.Label(final_frame, image=icon)
+                        icon_bye.pack(pady=10)
+
+                        final_frame.pack()
 
 
 def mainWindow():  # главное меню
@@ -147,6 +311,7 @@ def mainWindow():  # главное меню
     root.title("Бизнес-игра")
     root.geometry("400x500")
     root.iconbitmap('misc/window_icon.ico')
+    root.resizable(False, False)
 
     entry_label = ttk.Label(frame, text='Добро пожаловать!\nВведите логин:', font=main_font)
     entry_label.pack(pady=10)

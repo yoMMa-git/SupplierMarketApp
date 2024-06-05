@@ -3,7 +3,7 @@ from tkinter import ttk
 
 
 def update_value(widget, array, index, change, balance, balanceLabel):
-    if not (array[index] + change < 5 or array[index] + change > 45) and (balance[0] - change) >= 0:
+    if (balance[0] - change) >= 0 and (array[index] + change) >= 0:
         array[index] += change
         balance[0] -= change
         widget.config(text=str(array[index]))
@@ -105,14 +105,18 @@ def draw_game_ui(frame, values, balance, fonts):  # поменять frame на 
     balanceLabel.grid(column=2, row=11, sticky=tk.NSEW)
 
 
-def draw_judge_ui(frame, rates, fonts):
+def draw_judge_ui(frame, rates, fonts, locked):
+    state = tk.NORMAL
+    if locked:
+        state = tk.DISABLED
+
     criterias = ['Объем поставки', 'Срок поставки', 'Цена за штуку', 'Отклонения от графика платежей', 'Виды упаковки']
 
     for i in range(13):
         frame.rowconfigure(i, pad=10)
 
     label_12_1 = ttk.Label(frame, text=criterias[0], font=fonts['list_font'])
-    entry_12 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[0])
+    entry_12 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[0], state=state)
     label_12_2 = ttk.Label(frame, text=criterias[1], font=fonts['list_font'])
 
     label_12_1.grid(row=1, column=0, sticky=tk.E)
@@ -120,7 +124,7 @@ def draw_judge_ui(frame, rates, fonts):
     label_12_2.grid(row=1, column=2, sticky=tk.W)
 
     label_13_1 = ttk.Label(frame, text=criterias[0], font=fonts['list_font'])
-    entry_13 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[1])
+    entry_13 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[1], state=state)
     label_13_2 = ttk.Label(frame, text=criterias[2], font=fonts['list_font'])
 
     label_13_1.grid(row=2, column=0, sticky=tk.E)
@@ -128,7 +132,7 @@ def draw_judge_ui(frame, rates, fonts):
     label_13_2.grid(row=2, column=2, sticky=tk.W)
 
     label_14_1 = ttk.Label(frame, text=criterias[0], font=fonts['list_font'])
-    entry_14 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[2])
+    entry_14 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[2], state=state)
     label_14_2 = ttk.Label(frame, text=criterias[3], font=fonts['list_font'])
 
     label_14_1.grid(row=3, column=0, sticky=tk.E)
@@ -136,7 +140,7 @@ def draw_judge_ui(frame, rates, fonts):
     label_14_2.grid(row=3, column=2, sticky=tk.W)
 
     label_15_1 = ttk.Label(frame, text=criterias[0], font=fonts['list_font'])
-    entry_15 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[3])
+    entry_15 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[3], state=state)
     label_15_2 = ttk.Label(frame, text=criterias[4], font=fonts['list_font'])
 
     label_15_1.grid(row=4, column=0, sticky=tk.E)
@@ -144,7 +148,7 @@ def draw_judge_ui(frame, rates, fonts):
     label_15_2.grid(row=4, column=2, sticky=tk.W)
 
     label_23_1 = ttk.Label(frame, text=criterias[1], font=fonts['list_font'])
-    entry_23 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[4])
+    entry_23 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[4], state=state)
     label_23_2 = ttk.Label(frame, text=criterias[2], font=fonts['list_font'])
 
     label_23_1.grid(row=5, column=0, sticky=tk.E)
@@ -152,7 +156,7 @@ def draw_judge_ui(frame, rates, fonts):
     label_23_2.grid(row=5, column=2, sticky=tk.W)
 
     label_24_1 = ttk.Label(frame, text=criterias[1], font=fonts['list_font'])
-    entry_24 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[5])
+    entry_24 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[5], state=state)
     label_24_2 = ttk.Label(frame, text=criterias[3], font=fonts['list_font'])
 
     label_24_1.grid(row=6, column=0, sticky=tk.E)
@@ -160,7 +164,7 @@ def draw_judge_ui(frame, rates, fonts):
     label_24_2.grid(row=6, column=2, sticky=tk.W)
 
     label_25_1 = ttk.Label(frame, text=criterias[1], font=fonts['list_font'])
-    entry_25 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[6])
+    entry_25 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[6], state=state)
     label_25_2 = ttk.Label(frame, text=criterias[4], font=fonts['list_font'])
 
     label_25_1.grid(row=7, column=0, sticky=tk.E)
@@ -168,7 +172,7 @@ def draw_judge_ui(frame, rates, fonts):
     label_25_2.grid(row=7, column=2, sticky=tk.W)
 
     label_34_1 = ttk.Label(frame, text=criterias[2], font=fonts['list_font'])
-    entry_34 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[7])
+    entry_34 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[7], state=state)
     label_34_2 = ttk.Label(frame, text=criterias[3], font=fonts['list_font'])
 
     label_34_1.grid(row=8, column=0, sticky=tk.E)
@@ -176,7 +180,7 @@ def draw_judge_ui(frame, rates, fonts):
     label_34_2.grid(row=8, column=2, sticky=tk.W)
 
     label_35_1 = ttk.Label(frame, text=criterias[2], font=fonts['list_font'])
-    entry_35 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[8])
+    entry_35 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[8], state=state)
     label_35_2 = ttk.Label(frame, text=criterias[4], font=fonts['list_font'])
 
     label_35_1.grid(row=9, column=0, sticky=tk.E)
@@ -184,7 +188,7 @@ def draw_judge_ui(frame, rates, fonts):
     label_35_2.grid(row=9, column=2, sticky=tk.W)
 
     label_45_1 = ttk.Label(frame, text=criterias[3], font=fonts['list_font'])
-    entry_45 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[9])
+    entry_45 = ttk.Entry(frame, justify=tk.CENTER, textvariable=rates[9], state=state)
     label_45_2 = ttk.Label(frame, text=criterias[4], font=fonts['list_font'])
 
     label_45_1.grid(row=10, column=0, sticky=tk.E)
@@ -194,3 +198,24 @@ def draw_judge_ui(frame, rates, fonts):
     label_info = ttk.Label(frame, text="Сравните критерии по шкале Саати (подробнее в Инструкции)",
                            font=fonts['main_font'])
     label_info.grid(row=11, columnspan=5)
+
+
+def draw_results_ui(data, frame, fonts):
+    label_info = ttk.Label(frame, text=f"Текущее состояние рынка поставщиков (раунд {str(data['round'])})",
+                           font=fonts['main_font'])
+    label_info.grid(row=0, columnspan=5, sticky=tk.NSEW)
+
+    current_row = 2
+
+    info = data['data']
+    try:
+        for player in info.keys():
+            ttk.Label(frame, text=f"{str(data['nicknames'][player])}: {str(info[player])}%",
+                      font=fonts['list_font']).grid(row=current_row, columnspan=5, sticky=tk.W)
+            current_row += 1
+    except TypeError:
+        pass
+
+    print(data)
+
+    return 0

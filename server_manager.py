@@ -10,11 +10,20 @@ def send_theme():  # отправка тематики партии и блок�
     time.sleep(1)
     sio.emit('game_theme', data={'theme': combox.get()})
     second_button.config(state=tk.DISABLED)
+    third_button.config(state=tk.NORMAL)
 
 
 def start_game():
     first_button.config(state=tk.DISABLED)
     sio.emit('admin_game_start')
+    second_button.config(state=tk.NORMAL)
+
+
+def finish_game():
+    first_button.config(state=tk.DISABLED)
+    second_button.config(state=tk.DISABLED)
+    third_button.config(state=tk.DISABLED)
+    sio.emit('finish')
 
 
 size = 0
@@ -35,8 +44,9 @@ def update_data(data):  # перерисовка счётчика игроков
     print("Got response!")
     size = len(data['nicknames'])
     if size >= ALLOWED_PLAYERS:
-        second_button.config(state=tk.NORMAL)
-        pass
+        first_button.config(state=tk.NORMAL)
+    else:
+        first_button.config(state=tk.DISABLED)
     players_count.config(text=f"Количество игроков: {size}")
 
 
@@ -61,13 +71,13 @@ players_count.grid(row=0, column=1)
 combox = Combobox(root, values=themes)
 combox.grid(row=1, column=1)
 
-first_button = Button(root, text='Начать игру', command=start_game)
+first_button = Button(root, text='Начать игру', command=start_game, state=tk.DISABLED)
 first_button.grid(row=2, column=0)
 
 second_button = Button(root, text='Отправить тематику', command=send_theme, state=tk.DISABLED)
 second_button.grid(row=2, column=1)
 
-third_button = Button(root, text='Third button')
+third_button = Button(root, text='Завершить игру', command=finish_game, state=tk.DISABLED)
 third_button.grid(row=2, column=2)
 
 threading.Thread(target=root.mainloop()).start()
