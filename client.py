@@ -109,6 +109,7 @@ def on_button_click(entry_field):  # отправка никнейма
                         balance = [100 - sum(values)]
 
                         draw_game_ui(frame3, values, balance, fonts)
+
                         button_accept = ttk.Button(frame3, text='Отправить распределение',
                                                    command=lambda: send_values(values, button_accept))
                         button_accept.grid(column=2, row=12, sticky=tk.NSEW)
