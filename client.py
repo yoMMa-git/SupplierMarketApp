@@ -5,7 +5,7 @@ from PIL import Image, ImageTk
 import socketio
 import threading
 
-from interface import draw_game_ui, draw_judge_ui, draw_results_ui
+from interface import draw_game_ui, draw_judge_ui, draw_results_ui, draw_graphics_ui
 
 sio = socketio.Client()
 HOST, PORT = '25.29.145.179', 5001
@@ -65,20 +65,9 @@ def forget_every_frame():
 
 def send_rates(rates, button_rates):
     print("Button has been pressed!")
+    print(rates)
     button_rates.config(state=tk.DISABLED)  # блокируем кнопку
-    numbers = []  # массив, в котором будем хранить ЧИСЛЕННЫЕ значения
-    success = True  # флаг успешности конвертации
-    for elem in rates:
-        if not elem.get().lstrip('-').isdigit():  # если введено число
-            success = False
-        else:
-            numbers.append(int(elem.get()))
-    if success:  # если все значения - числа
-        rates = numbers.copy()
-        sio.emit('send_rates', {'rates': rates})
-    else:
-        button_rates.config(state=tk.NORMAL)
-    return success
+    sio.emit('send_rates', {'rates': rates})
 
 
 def on_button_click(entry_field):  # отправка никнейма
@@ -188,7 +177,8 @@ def on_button_click(entry_field):  # отправка никнейма
                                 try:
                                     number = data['number']
                                     value = data['value']
-                                    value_label = ttk.Label(frame3, text=str(round(value*100, 2))+"%", font=list_font)
+                                    value_label = ttk.Label(frame3, text=str(round(value * 100, 2)) + "%",
+                                                            font=list_font)
                                     value_label.grid(column=number, row=14, sticky=tk.NSEW)
                                 except KeyError:
                                     pass
@@ -227,6 +217,10 @@ def on_button_click(entry_field):  # отправка никнейма
 
                         icon_bye = ttk.Label(final_frame, image=icon)
                         icon_bye.pack(pady=10)
+
+                        pie_graph_button = ttk.Button(final_frame, text='Круговая диаграмма',
+                                                      command=lambda: draw_graphics_ui(data))
+                        pie_graph_button.pack(pady=10)
 
                         final_frame.pack()
 
@@ -301,6 +295,10 @@ def on_button_click(entry_field):  # отправка никнейма
 
                         icon_bye = ttk.Label(final_frame, image=icon)
                         icon_bye.pack(pady=10)
+
+                        pie_graph_button = ttk.Button(final_frame, text='Круговая диаграмма',
+                                                      command=lambda: draw_graphics_ui(data))
+                        pie_graph_button.pack(pady=10)
 
                         final_frame.pack()
 

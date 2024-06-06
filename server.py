@@ -2,6 +2,7 @@ from flask import Flask, request
 from flask_socketio import SocketIO, join_room, leave_room, emit, rooms
 import time
 import random
+from datetime import datetime
 
 from game_math import calculate_everything, get_cofs
 
@@ -15,6 +16,7 @@ ADMIN_ID = None  # ID админа
 JUDGE_ID = None  # ID экспертной комиссии
 
 ROOM_NAME = 'MainLobby'  # название главного лобби
+FILE_NAME = None  # файл для записи данных
 
 game_start = False  # трекер старта игры
 game_result = False  # трекер результатов игры (необходимо для завершения игры)
@@ -22,13 +24,28 @@ theme = None  # тема партии
 current_round = 1  # текущий номер раунда
 
 player_values = {}  # словарь ID-оценки
-judge_rates = []
-current_results = {}
+judge_rates = []  # массив оценок экспертной комиссии
+current_results = {}  #
+prev_results = {}
 
 
 def random_user(players):
     index = random.randint(0, len(players.values()) - 1)
     return list(players.keys())[index]
+
+
+def write_in_file(file_name, data):
+    global nicknames, current_round
+    try:
+        file = open(str(file_name), 'a')
+    except OSError:
+        print("Error with opening a file!")
+    else:
+        file.write(f"РАУНД {current_round}:\n")
+        for key in data.keys():
+            file.write(f"{nicknames[key]}: {data[key]}\n")
+        file.write('\n')
+        file.close()
 
 
 @socketio.on('connect')
@@ -83,11 +100,12 @@ def register_user(data):
 
 @socketio.on('admin_game_start')  # когда админ подаёт команду старта
 def start_game():
-    global game_start, JUDGE_ID
+    global game_start, JUDGE_ID, FILE_NAME
     game_start = True
     time.sleep(1)
     JUDGE_ID = random_user(nicknames)  # случайное определение экспертной комиссии
     leave_room(room=ROOM_NAME, sid=JUDGE_ID)
+    FILE_NAME = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p") + ".txt"
     emit('start_game', {'role': 'player'}, room=ROOM_NAME)
     emit('start_game', {'role': 'judge'}, to=JUDGE_ID)
 
@@ -102,7 +120,7 @@ def start_game(data):
 
 @socketio.on('send_values')
 def add_values(data):
-    global judge_rates, player_values, JUDGE_ID, game_result, current_results
+    global judge_rates, player_values, JUDGE_ID, game_result, current_results, FILE_NAME
     print("Got values!")
     values = data['values']
     player_values[request.sid] = values
@@ -110,9 +128,15 @@ def add_values(data):
         emit('wait_for_rates', room=ROOM_NAME)
         if len(judge_rates) > 0:
             current_results = calculate_everything(player_values, judge_rates)
-            game_result = True
-            emit('game_results', {'round': current_round, 'data': current_results, 'nicknames': nicknames},
-                 to=list(nicknames.keys()))
+            try:
+                write_in_file(FILE_NAME, current_results)
+            except OSError:
+                print("Error!")
+            finally:
+                game_result = True
+                emit('game_results',
+                     {'round': current_round, 'data': current_results, 'prev': prev_results, 'nicknames': nicknames},
+                     to=list(nicknames.keys()))
 
 
 @socketio.on('send_rates')
@@ -122,15 +146,22 @@ def add_rates(data):
     judge_rates = data['rates']
     if len(player_values.keys()) == len(nicknames.keys()) - 1:
         current_results = calculate_everything(player_values, judge_rates)
-        game_result = True
-        emit('game_results', {'round': current_round, 'data': current_results, 'nicknames': nicknames},
-             to=list(nicknames.keys()))
+        try:
+            write_in_file(FILE_NAME, current_results)
+        except OSError:
+            print("Error!")
+        finally:
+            game_result = True
+            emit('game_results',
+                 {'round': current_round, 'data': current_results, 'prev': prev_results, 'nicknames': nicknames},
+                 to=list(nicknames.keys()))
 
 
 @socketio.on('next_round')
 def next_round():
-    global current_round, player_values, judge_rates, JUDGE_ID, game_result
+    global current_round, player_values, judge_rates, JUDGE_ID, game_result, current_results, prev_results
     print(f"NEXT ROUND: {current_round + 1}!")
+    prev_results = current_results.copy()
     game_result = False
     if game_start:  # если игра в процессе
         current_round += 1
